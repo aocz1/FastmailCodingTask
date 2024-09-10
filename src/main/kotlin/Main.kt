@@ -12,7 +12,7 @@ fun main() = runBlocking {
 
     println("**Start**")
 
-    val flagNames = getFlagNamesFromAPI()
+    val flagNames = getFlagNamesFromAPI("WHITE")
 
     flagNames.forEach {
         println(it)
@@ -21,8 +21,13 @@ fun main() = runBlocking {
     println("**End**")
 }
 
-// Function to be submitted
-suspend fun getFlagNamesFromAPI(): List<String> {
+/** Function to be submitted
+ * Assumptions:
+ * 1. Search term is case-insensitive.
+ */
+suspend fun getFlagNamesFromAPI(
+    searchTerm: String = ""
+): List<String> {
 
     val client = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -36,6 +41,18 @@ suspend fun getFlagNamesFromAPI(): List<String> {
 
     return flagsResponse
         .images
+        .filter { image ->
+            if (searchTerm.isNotEmpty()) {
+                image.tags.any { tag ->
+                    tag.equals(
+                        other = searchTerm,
+                        ignoreCase = true
+                    )
+                }
+            } else {
+                true
+            }
+        }
         .map {
             it.name ?: ""
         }
