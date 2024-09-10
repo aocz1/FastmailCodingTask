@@ -12,7 +12,7 @@ fun main() = runBlocking {
 
     println("**Start**")
 
-    val flagNames = getFlagNamesFromAPI("WHITE PinK")
+    val flagNames = getFlagNamesFromAPI("WHITE $IS_PORTRAIT_SEARCH_TERM")
 
     flagNames.forEach {
         println(it)
@@ -25,6 +25,8 @@ fun main() = runBlocking {
  * Assumptions:
  * 1. Search term is case-insensitive.
  * 2. Search terms are separated by spaces.
+ * 3. Portrait means height > width, landscape is width > height.
+ * If both are equal, then it is neither portrait or landscape.
  */
 suspend fun getFlagNamesFromAPI(
     searchTerm: String = ""
@@ -40,15 +42,34 @@ suspend fun getFlagNamesFromAPI(
         .get("http://frontendtest.jobs.fastmail.com.user.fm/data.json")
         .body<FlagsResponse>()
 
-    val searchTermsSplit = searchTerm.split(" ")
+    val searchTermsSplit = searchTerm.split(" ").map { it.lowercase() }
 
     return flagsResponse
         .images
         .filter { image ->
+            if (searchTermsSplit.contains(IS_PORTRAIT_SEARCH_TERM)) {
+                return@filter (image.height ?: 0) > (image.width ?: 0)
+            }
+
+            if (searchTermsSplit.contains(IS_LANDSCAPE_SEARCH_TERM)) {
+                return@filter (image.width ?: 0) > (image.height ?: 0)
+            }
+
+            true
+        }
+        .filter { image ->
             if (searchTermsSplit.isNotEmpty()) {
-                image.tags.any { tag ->
-                    tag.lowercase() in searchTermsSplit.map { it.lowercase() }
-                }
+
+                val onlyColourSearchTerms = searchTermsSplit
+                    .filter { term ->
+                        (term == IS_PORTRAIT_SEARCH_TERM).not() &&
+                                (term == IS_LANDSCAPE_SEARCH_TERM).not()
+                    }
+
+                image
+                    .tags
+                    .map { it.lowercase() }
+                    .containsAll(onlyColourSearchTerms)
             } else {
                 true
             }
@@ -57,3 +78,6 @@ suspend fun getFlagNamesFromAPI(
             it.name ?: ""
         }
 }
+
+const val IS_PORTRAIT_SEARCH_TERM = "is:portrait"
+const val IS_LANDSCAPE_SEARCH_TERM = "is:landscape"
