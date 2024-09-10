@@ -12,7 +12,7 @@ fun main() = runBlocking {
 
     println("**Start**")
 
-    val flagNames = getFlagNamesFromAPI("WHITE")
+    val flagNames = getFlagNamesFromAPI("WHITE PinK")
 
     flagNames.forEach {
         println(it)
@@ -24,6 +24,7 @@ fun main() = runBlocking {
 /** Function to be submitted
  * Assumptions:
  * 1. Search term is case-insensitive.
+ * 2. Search terms are separated by spaces.
  */
 suspend fun getFlagNamesFromAPI(
     searchTerm: String = ""
@@ -39,15 +40,14 @@ suspend fun getFlagNamesFromAPI(
         .get("http://frontendtest.jobs.fastmail.com.user.fm/data.json")
         .body<FlagsResponse>()
 
+    val searchTermsSplit = searchTerm.split(" ")
+
     return flagsResponse
         .images
         .filter { image ->
-            if (searchTerm.isNotEmpty()) {
+            if (searchTermsSplit.isNotEmpty()) {
                 image.tags.any { tag ->
-                    tag.equals(
-                        other = searchTerm,
-                        ignoreCase = true
-                    )
+                    tag.lowercase() in searchTermsSplit.map { it.lowercase() }
                 }
             } else {
                 true
