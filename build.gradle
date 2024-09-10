@@ -1,0 +1,43 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.9.0'
+    id 'application'
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+
+
+dependencies {
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
+
+    String ktor_version = "2.3.12"
+
+    implementation("io.ktor:ktor-client-core:$ktor_version")
+    implementation("io.ktor:ktor-client-cio:$ktor_version")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
+    implementation("io.ktor:ktor-serialization-gson:$ktor_version")
+
+    String logback_version = "1.5.6"
+
+    implementation("ch.qos.logback:logback-classic:$logback_version")
+
+
+    implementation("com.google.code.gson:gson:2.8.9")
+}
+
+test {
+    useJUnitPlatform()
+}
+
+kotlin {
+    jvmToolchain(8)
+}
+
+application {
+    mainClassName = 'MainKt'
+}
