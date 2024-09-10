@@ -12,7 +12,7 @@ fun main() = runBlocking {
 
     println("**Start**")
 
-    val flagNames = getFlagNamesFromAPI("WHITE $IS_PORTRAIT_SEARCH_TERM")
+    val flagNames = getFlagNamesFromAPI("$IS_PORTRAIT_SEARCH_TERM or brOWN or purple")
 
     flagNames.forEach {
         println(it)
@@ -26,7 +26,9 @@ fun main() = runBlocking {
  * 1. Search term is case-insensitive.
  * 2. Search terms are separated by spaces.
  * 3. Portrait means height > width, landscape is width > height.
- * If both are equal, then it is neither portrait or landscape.
+ * If both are equal, then it is neither portrait nor landscape.
+ * 4. If there is no search terms to the left or right of the "OR",
+ * that particular condition on that side of the OR is ignored.
  */
 suspend fun getFlagNamesFromAPI(
     searchTerm: String = ""
@@ -43,7 +45,45 @@ suspend fun getFlagNamesFromAPI(
         .body<FlagsResponse>()
 
     val searchTermsSplit = searchTerm.split(" ").map { it.lowercase() }
+    val orIndexes = mutableListOf<Int>().apply {
+        searchTermsSplit.forEachIndexed { index, s ->
+            if (s == "or") {
+                add(index)
+            }
+        }
+    }
 
+    return if (orIndexes.isEmpty()) {
+        searchFlagsResponseWithTerms(flagsResponse, searchTermsSplit)
+    }  else {
+
+        val result = mutableListOf<String>()
+
+        var startingIndex = 0
+
+        orIndexes.forEach { orIndex ->
+            result += searchFlagsResponseWithTerms(
+                flagsResponse = flagsResponse,
+                searchTermsSplit = searchTermsSplit.subList(startingIndex, orIndex)
+            )
+            startingIndex = orIndex + 1
+        }
+
+        val finalRightSide = searchTermsSplit.subList(startingIndex, searchTermsSplit.size)
+
+        result += searchFlagsResponseWithTerms(
+            flagsResponse = flagsResponse,
+            searchTermsSplit = finalRightSide
+        )
+
+        result.distinct()
+    }
+}
+
+private fun searchFlagsResponseWithTerms(
+    flagsResponse: FlagsResponse,
+    searchTermsSplit: List<String>
+): List<String> {
     return flagsResponse
         .images
         .filter { image ->
